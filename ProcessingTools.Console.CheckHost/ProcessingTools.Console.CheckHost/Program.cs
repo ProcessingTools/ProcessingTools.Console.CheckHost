@@ -5,6 +5,7 @@
 namespace ProcessingTools.Console.CheckHost
 {
     using System;
+    using System.Globalization;
     using System.Net;
     using System.Net.Sockets;
 
@@ -17,8 +18,16 @@ namespace ProcessingTools.Console.CheckHost
         /// Main method.
         /// </summary>
         /// <param name="args">Arguments.</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Main method.")]
         public static void Main(string[] args)
         {
+            if (args is null || args.Length < 2)
+            {
+                PrintHelp();
+                Environment.Exit(1);
+                return;
+            }
+
             string portArgument = null;
 
             TcpClient tcpClient = null;
@@ -29,7 +38,7 @@ namespace ProcessingTools.Console.CheckHost
                 portArgument = args[1];
 
                 int portNumber;
-                portNumber = int.Parse(portArgument);
+                portNumber = int.Parse(portArgument, CultureInfo.InvariantCulture);
 
                 tcpClient = new TcpClient();
                 tcpClient.ReceiveTimeout = tcpClient.SendTimeout = 2000;
@@ -44,18 +53,17 @@ namespace ProcessingTools.Console.CheckHost
                     tcpClient.Connect(addressArgument, portNumber);
                 }
 
-                Console.WriteLine("Port {0} is listening.", portArgument);
+                PrintSuccess(portArgument);
             }
             catch (Exception e)
             {
                 if (e is SocketException || e is TimeoutException)
                 {
-                    Console.WriteLine("Not listening on port {0}.", portArgument);
+                    PrintFail(portArgument);
                 }
                 else
                 {
-                    Console.WriteLine("Usage:");
-                    Console.WriteLine("CheckHost [host|ip] [port]");
+                    PrintHelp();
                 }
             }
             finally
@@ -65,6 +73,21 @@ namespace ProcessingTools.Console.CheckHost
                     tcpClient.Close();
                 }
             }
+        }
+
+        private static void PrintFail(string portArgument)
+        {
+            Console.WriteLine($"Not listening on port {portArgument}.");
+        }
+
+        private static void PrintHelp()
+        {
+            Console.WriteLine($"Usage: {AppDomain.CurrentDomain.FriendlyName} [host|ip] [port]");
+        }
+
+        private static void PrintSuccess(string portArgument)
+        {
+            Console.WriteLine($"Port {portArgument} is listening.");
         }
     }
 }
